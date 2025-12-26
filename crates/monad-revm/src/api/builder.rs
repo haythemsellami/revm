@@ -1,8 +1,5 @@
 use crate::{
-    evm::MonadEvm,
-    instructions::MonadInstructions,
-    precompiles::MonadPrecompiles,
-    MonadSpecId,
+    evm::MonadEvm, instructions::MonadInstructions, precompiles::MonadPrecompiles, MonadSpecId,
 };
 use revm::{
     context::Cfg,
@@ -22,10 +19,14 @@ pub trait MonadBuilder: Sized {
     fn build_monad(self) -> DefaultMonadEvm<Self::Context>;
 
     /// Build MonadEvm with inspector.
-    fn build_monad_with_inspector<INSP>(self, inspector: INSP) -> DefaultMonadEvm<Self::Context, INSP>;
+    fn build_monad_with_inspector<INSP>(
+        self,
+        inspector: INSP,
+    ) -> DefaultMonadEvm<Self::Context, INSP>;
 }
 
-impl<BLOCK, TX, CFG, DB, JOURNAL, CHAIN> MonadBuilder for Context<BLOCK, TX, CFG, DB, JOURNAL, CHAIN>
+impl<BLOCK, TX, CFG, DB, JOURNAL, CHAIN> MonadBuilder
+    for Context<BLOCK, TX, CFG, DB, JOURNAL, CHAIN>
 where
     BLOCK: Block,
     TX: Transaction,
@@ -39,7 +40,10 @@ where
         MonadEvm::new(self, ())
     }
 
-    fn build_monad_with_inspector<INSP>(self, inspector: INSP) -> DefaultMonadEvm<Self::Context, INSP> {
+    fn build_monad_with_inspector<INSP>(
+        self,
+        inspector: INSP,
+    ) -> DefaultMonadEvm<Self::Context, INSP> {
         MonadEvm::new(self, inspector)
     }
 }

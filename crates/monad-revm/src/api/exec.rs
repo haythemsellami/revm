@@ -1,23 +1,15 @@
 // ExecuteEvm implementations for MonadEvm.
 
-use crate::{
-    evm::MonadEvm,
-    handler::MonadHandler,
-    instructions::MonadInstructions,
-    MonadSpecId,
-};
+use crate::{evm::MonadEvm, handler::MonadHandler, instructions::MonadInstructions, MonadSpecId};
 use revm::{
     context::{result::ExecResultAndState, ContextSetters},
     context_interface::{
         result::{EVMError, ExecutionResult, HaltReason},
         Cfg, ContextTr, Database, JournalTr, Transaction,
     },
-    handler::{
-        system_call::SystemCallEvm, EthFrame, Handler, PrecompileProvider, SystemCallTx,
-    },
+    handler::{system_call::SystemCallEvm, EthFrame, Handler, PrecompileProvider, SystemCallTx},
     inspector::{
-        InspectCommitEvm, InspectEvm, InspectSystemCallEvm, Inspector, InspectorHandler,
-        JournalExt,
+        InspectCommitEvm, InspectEvm, InspectSystemCallEvm, Inspector, InspectorHandler, JournalExt,
     },
     interpreter::{interpreter::EthInterpreter, InterpreterResult},
     primitives::{Address, Bytes},
@@ -32,16 +24,21 @@ pub trait MonadContextTr:
 }
 
 impl<T> MonadContextTr for T where
-    T: ContextTr<Journal: JournalTr<State = EvmState>, Tx: Transaction, Cfg: Cfg<Spec = MonadSpecId>>
+    T: ContextTr<
+        Journal: JournalTr<State = EvmState>,
+        Tx: Transaction,
+        Cfg: Cfg<Spec = MonadSpecId>,
+    >
 {
 }
 
 /// Type alias for MonadEvm error type.
-pub type MonadError<CTX> =
-    EVMError<<<CTX as ContextTr>::Db as Database>::Error, revm::context_interface::result::InvalidTransaction>;
+pub type MonadError<CTX> = EVMError<
+    <<CTX as ContextTr>::Db as Database>::Error,
+    revm::context_interface::result::InvalidTransaction,
+>;
 
-impl<CTX, INSP, PRECOMPILE> ExecuteEvm
-    for MonadEvm<CTX, INSP, MonadInstructions<CTX>, PRECOMPILE>
+impl<CTX, INSP, PRECOMPILE> ExecuteEvm for MonadEvm<CTX, INSP, MonadInstructions<CTX>, PRECOMPILE>
 where
     CTX: MonadContextTr + ContextSetters,
     PRECOMPILE: PrecompileProvider<CTX, Output = InterpreterResult>,
@@ -88,8 +85,7 @@ where
     }
 }
 
-impl<CTX, INSP, PRECOMPILE> InspectEvm
-    for MonadEvm<CTX, INSP, MonadInstructions<CTX>, PRECOMPILE>
+impl<CTX, INSP, PRECOMPILE> InspectEvm for MonadEvm<CTX, INSP, MonadInstructions<CTX>, PRECOMPILE>
 where
     CTX: MonadContextTr<Journal: JournalExt> + ContextSetters,
     INSP: Inspector<CTX, EthInterpreter>,
