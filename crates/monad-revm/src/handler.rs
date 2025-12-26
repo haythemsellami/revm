@@ -4,7 +4,9 @@
 //! - Gas is charged based on gas_limit, not gas_used (no refunds)
 use revm::{
     context_interface::{result::HaltReason, Block, Cfg, ContextTr, JournalTr, Transaction},
-    handler::{evm::FrameTr, handler::EvmTrError, EthFrame, EvmTr, FrameResult, Handler, MainnetHandler},
+    handler::{
+        evm::FrameTr, handler::EvmTrError, EthFrame, EvmTr, FrameResult, Handler, MainnetHandler,
+    },
     inspector::{Inspector, InspectorEvmTr, InspectorHandler},
     interpreter::{interpreter::EthInterpreter, interpreter_action::FrameInit},
     primitives::{hardfork::SpecId, U256},
