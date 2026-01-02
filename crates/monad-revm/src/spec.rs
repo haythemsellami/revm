@@ -33,6 +33,30 @@ impl From<MonadSpecId> for SpecId {
     }
 }
 
+impl From<SpecId> for MonadSpecId {
+    /// Converts an Ethereum [`SpecId`] to the corresponding [`MonadSpecId`].
+    ///
+    /// This maps Ethereum hardforks to their Monad equivalents:
+    /// - PRAGUE and earlier → MonadSpecId::Monad (Monad's genesis is PRAGUE-based)
+    ///
+    /// When new Monad hardforks are added, update this mapping:
+    /// ```ignore
+    /// match spec {
+    ///     SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::Monad2,
+    ///     _ => MonadSpecId::Monad,
+    /// }
+    /// ```
+    fn from(spec: SpecId) -> Self {
+        // Currently Monad only has one hardfork (Monad), which is PRAGUE-based.
+        // When future Monad forks are added, map newer Ethereum specs accordingly.
+        match spec {
+            // Future: Add mappings for newer Monad hardforks here
+            // SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::Monad2,
+            _ => MonadSpecId::Monad,
+        }
+    }
+}
+
 impl FromStr for MonadSpecId {
     type Err = UnknownHardfork;
 
