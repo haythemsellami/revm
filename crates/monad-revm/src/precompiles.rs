@@ -1,7 +1,7 @@
 //! Contains Monad specific precompiles.
 //!
 //! Monad reprices several precompiles to accurately reflect their relative costs.
-//! See: https://docs.monad.xyz/developer-essentials/opcode-pricing#precompiles
+//! See: <https://docs.monad.xyz/developer-essentials/opcode-pricing#precompiles>
 //!
 //! | Precompile  | Address | Ethereum | Monad   | Multiplier |
 //! |-------------|---------|----------|---------|------------|
@@ -350,7 +350,7 @@ mod tests {
         let precompiles = monad_precompiles.precompiles();
 
         // Check all standard Ethereum precompiles are present (0x01-0x0a)
-        // https://docs.monad.xyz/developer-essentials/precompiles
+        // <https://docs.monad.xyz/developer-essentials/precompiles>
         assert!(
             precompiles.contains(&revm::precompile::u64_to_address(0x01)),
             "ecRecover (0x01) should exist"

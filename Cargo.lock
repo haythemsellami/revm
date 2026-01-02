@@ -2745,6 +2745,7 @@ dependencies = [
  "auto_impl",
  "revm",
  "rstest 0.24.0",
+ "serde",
 ]
 
 [[package]]

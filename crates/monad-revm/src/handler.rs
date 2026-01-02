@@ -166,7 +166,9 @@ mod tests {
         // Verify that blob transactions are rejected
         assert!(matches!(
             result,
-            Err(EVMError::Transaction(InvalidTransaction::Eip4844NotSupported))
+            Err(EVMError::Transaction(
+                InvalidTransaction::Eip4844NotSupported
+            ))
         ));
     }
 }

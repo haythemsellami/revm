@@ -18,13 +18,16 @@ workspace = true
 revm.workspace = true
 auto_impl.workspace = true
 
+# Optional
+serde = { workspace = true, features = ["derive", "rc"], optional = true }
+
 [dev-dependencies]
 rstest = "0.24"
 
 [features]
 default = ["std", "c-kzg", "secp256k1", "portable", "blst"]
-std = ["revm/std"]
-serde = ["revm/serde"]
+std = ["serde?/std", "revm/std"]
+serde = ["dep:serde", "revm/serde"]
 portable = ["revm/portable"]
 c-kzg = ["revm/c-kzg"]
 secp256k1 = ["revm/secp256k1"]

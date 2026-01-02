@@ -12,7 +12,9 @@ use revm::{
 pub type DefaultMonadEvm<CTX, INSP = ()> =
     MonadEvm<CTX, INSP, MonadInstructions<CTX>, MonadPrecompiles>;
 
+/// Trait for building Monad EVM instances from a context.
 pub trait MonadBuilder: Sized {
+    /// The context type used by this builder.
     type Context;
 
     /// Build MonadEvm without inspector.

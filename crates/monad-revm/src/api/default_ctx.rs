@@ -11,12 +11,13 @@ use revm::{
 ///
 /// Uses standard Ethereum types since Monad doesn't need custom tx/block types.
 /// The key difference is:
-/// - Using [`MonadSpecId`] instead of `SpecId`
-/// - Using [`MonadCfgEnv`] which has Monad-specific defaults (128KB code size limit)
+/// - Using `MonadSpecId` instead of `SpecId`
+/// - Using `MonadCfgEnv` which has Monad-specific defaults (128KB code size limit)
 pub type MonadContext<DB> = Context<BlockEnv, TxEnv, MonadCfgEnv, DB, Journal<DB>, ()>;
 
 /// Trait for creating a default Monad context.
 pub trait DefaultMonad {
+    /// Creates a new Monad context with default settings and an empty database.
     fn monad() -> MonadContext<EmptyDB>;
 }
 

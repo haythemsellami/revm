@@ -1,7 +1,7 @@
 //! Monad-specific EVM configuration.
 //!
-//! This module provides [`MonadCfgEnv`], a wrapper around [`CfgEnv<MonadSpecId>`] that
-//! implements the [`Cfg`] trait with Monad-specific defaults.
+//! This module provides [`MonadCfgEnv`], a wrapper around `CfgEnv<MonadSpecId>` that
+//! implements the `Cfg` trait with Monad-specific defaults.
 
 use crate::MonadSpecId;
 use core::ops::{Deref, DerefMut};
@@ -20,12 +20,12 @@ pub const MONAD_MAX_INITCODE_SIZE: usize = MONAD_MAX_CODE_SIZE * 2; // 256KB
 
 /// Monad-specific EVM configuration.
 ///
-/// This is a newtype wrapper around [`CfgEnv<MonadSpecId>`] that implements
-/// the [`Cfg`] trait with Monad-specific defaults for:
+/// This is a newtype wrapper around `CfgEnv<MonadSpecId>` that implements
+/// the `Cfg` trait with Monad-specific defaults for:
 /// - `max_code_size()`: Returns [`MONAD_MAX_CODE_SIZE`] (128KB) instead of EIP-170's 24KB
 /// - `max_initcode_size()`: Returns [`MONAD_MAX_INITCODE_SIZE`] (256KB) instead of EIP-3860's 48KB
 ///
-/// All other configuration options are delegated to the inner [`CfgEnv`].
+/// All other configuration options are delegated to the inner `CfgEnv`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MonadCfgEnv(pub CfgEnv<MonadSpecId>);

@@ -1,6 +1,6 @@
 //! Contains the `[MonadSpecId]` type and its implementation.
 use core::str::FromStr;
-use revm::primitives::hardfork::{name as eth_name, SpecId, UnknownHardfork};
+use revm::primitives::hardfork::{SpecId, UnknownHardfork};
 
 /// Monad spec id.
 #[repr(u8)]

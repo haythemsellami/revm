@@ -16,7 +16,7 @@ pub type MonadInstructions<CTX> = EthInstructions<EthInterpreter, CTX>;
 /// Override Ethereum defaults with Monad's gas costs.
 ///
 /// Monad increases cold access costs to account for the relatively higher cost
-/// of state reads from disk. See: https://docs.monad.xyz/developer-essentials/opcode-pricing#cold-access-cost
+/// of state reads from disk. See: <https://docs.monad.xyz/developer-essentials/opcode-pricing#cold-access-cost>
 ///
 /// | Access Type | Ethereum | Monad |
 /// |-------------|----------|-------|
@@ -56,13 +56,11 @@ pub fn monad_gas_params(spec: MonadSpecId) -> GasParams {
 /// 3. Any custom Monad opcodes (future)
 pub fn monad_instructions<CTX: Host>(spec: MonadSpecId) -> MonadInstructions<CTX> {
     let eth_spec = spec.into_eth_spec();
-    let instructions = EthInstructions::new(
+    EthInstructions::new(
         instruction_table_gas_changes_spec(eth_spec),
         monad_gas_params(spec),
         eth_spec,
-    );
-
-    instructions
+    )
 }
 
 /// Monad cold storage access cost (SLOAD, SSTORE).
