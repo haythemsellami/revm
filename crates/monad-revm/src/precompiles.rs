@@ -21,8 +21,8 @@ use revm::{
     handler::{EthPrecompiles, PrecompileProvider},
     interpreter::{CallInputs, InterpreterResult},
     precompile::{
-        bn254, kzg_point_evaluation, Precompile, PrecompileError, PrecompileId, PrecompileOutput,
-        PrecompileResult, Precompiles,
+        bn254, kzg_point_evaluation, secp256r1, Precompile, PrecompileError, PrecompileId,
+        PrecompileOutput, PrecompileResult, Precompiles,
     },
     primitives::{alloy_primitives::B512, hardfork::SpecId, Address, Bytes, B256},
 };
@@ -267,6 +267,10 @@ impl MonadPrecompiles {
             MONAD_POINT_EVALUATION,
         ]);
 
+        // Add P256VERIFY precompile (RIP-7212 / EIP-7951)
+        // Address: 0x0100, Gas: 3450 (same as Ethereum pre-Osaka)
+        precompiles.extend([secp256r1::P256VERIFY]);
+
         Self {
             inner: EthPrecompiles {
                 precompiles: Box::leak(Box::new(precompiles)),
@@ -419,8 +423,13 @@ mod tests {
             "bls12_map_fp2_to_g2 (0x11) should exist"
         );
 
+        // P256VERIFY precompile (RIP-7212 / EIP-7951)
+        assert!(
+            precompiles.contains(&revm::precompile::u64_to_address(0x0100)),
+            "p256_verify (0x0100) should exist"
+        );
+
         // TODO: Add Monad-specific precompiles when implemented
-        // assert!(precompiles.contains(&revm::precompile::u64_to_address(0x0100)), "p256_verify (0x0100) should exist");
         // assert!(precompiles.contains(&revm::precompile::u64_to_address(0x1000)), "staking (0x1000) should exist");
     }
 
@@ -602,6 +611,44 @@ mod tests {
         assert_eq!(
             result.gas_used, expected_gas,
             "blake2f should use Monad gas cost of 24 for 12 rounds"
+        );
+    }
+
+    #[test]
+    fn test_p256verify_precompile_gas_cost() {
+        use revm::primitives::hex;
+
+        let monad_precompiles = MonadPrecompiles::default();
+        let precompiles = monad_precompiles.precompiles();
+
+        // Get the P256VERIFY precompile (address 0x0100)
+        let p256verify_address = revm::precompile::u64_to_address(0x0100);
+        let precompile = precompiles
+            .get(&p256verify_address)
+            .expect("P256VERIFY should exist");
+
+        // Valid P256 signature verification input (160 bytes):
+        // msg hash (32) + r (32) + s (32) + pubkey x (32) + pubkey y (32)
+        // Test vector from RIP-7212
+        let input = hex::decode(
+            "4cee90eb86eaa050036147a12d49004b6b9c72bd725d39d4785011fe190f0b4d\
+             a73bd4903f0ce3b639bbbf6e8e80d16931ff4bcf5993d58468e8fb19086e8cac\
+             36dbcd03009df8c59286b162af3bd7fcc0450c9aa81be5d10d312af6c66b1d60\
+             4aebd3099c618202fcfe16ae7770b0c49ab5eadf74b754204a3bb6060e44eff3\
+             7618b065f9832de4ca6ca971a7a1adc826d0f7c00181a5fb2ddf79ae00b4e10e",
+        )
+        .unwrap();
+
+        // Execute with high gas limit
+        let result = precompile
+            .execute(&input, 10_000)
+            .expect("P256VERIFY should succeed");
+
+        // Verify Ethereum pre-Osaka gas cost is used (3450)
+        assert_eq!(
+            result.gas_used,
+            revm::precompile::secp256r1::P256VERIFY_BASE_GAS_FEE,
+            "P256VERIFY should use Ethereum gas cost of 3450"
         );
     }
 }
