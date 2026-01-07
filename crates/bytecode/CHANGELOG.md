@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.0](https://github.com/haythemsellami/revm/compare/revm-bytecode-v7.1.1...revm-bytecode-v7.2.0) - 2026-01-07
+
+### Added
+
+- BAL EIP-7928 ([#3070](https://github.com/haythemsellami/revm/pull/3070))
+
+### Fixed
+
+- the MLOAD opcode can resize memory ([#3266](https://github.com/haythemsellami/revm/pull/3266))
+
+### Other
+
+- happy new year, 2026 licence ([#3272](https://github.com/haythemsellami/revm/pull/3272))
+- the KECCAK256 opcode can resize memory ([#3269](https://github.com/haythemsellami/revm/pull/3269))
+
 ## [7.1.1](https://github.com/bluealloy/revm/compare/revm-bytecode-v7.1.0...revm-bytecode-v7.1.1) - 2025-11-07
 
 ### Other
