@@ -73,3 +73,56 @@ pub const COLD_ACCOUNT_ACCESS_COST: u64 = 10100;
 
 /// Warm storage read cost - same as Ethereum.
 pub const WARM_STORAGE_READ_COST: u64 = 100;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use revm::primitives::hardfork::SpecId;
+
+    #[test]
+    fn test_monad_gas_params_cold_storage_cost() {
+        let params = monad_gas_params(MonadSpecId::Monad);
+        assert_eq!(params.get(GasId::cold_storage_cost()), COLD_SLOAD_COST);
+    }
+
+    #[test]
+    fn test_monad_gas_params_cold_storage_additional_cost() {
+        let params = monad_gas_params(MonadSpecId::Monad);
+        assert_eq!(
+            params.get(GasId::cold_storage_additional_cost()),
+            COLD_SLOAD_COST - WARM_STORAGE_READ_COST
+        );
+    }
+
+    #[test]
+    fn test_monad_gas_params_cold_account_additional_cost() {
+        let params = monad_gas_params(MonadSpecId::Monad);
+        assert_eq!(
+            params.get(GasId::cold_account_additional_cost()),
+            COLD_ACCOUNT_ACCESS_COST - WARM_STORAGE_READ_COST
+        );
+    }
+
+    #[test]
+    fn test_monad_gas_params_warm_storage_unchanged() {
+        let params = monad_gas_params(MonadSpecId::Monad);
+        assert_eq!(
+            params.get(GasId::warm_storage_read_cost()),
+            WARM_STORAGE_READ_COST
+        );
+    }
+
+    #[test]
+    fn test_monad_vs_ethereum_cold_costs() {
+        let monad = monad_gas_params(MonadSpecId::Monad);
+        let eth = GasParams::new_spec(SpecId::PRAGUE);
+
+        // Monad cold storage: 8100 vs Ethereum: 2100
+        assert_eq!(monad.get(GasId::cold_storage_cost()), 8100);
+        assert_eq!(eth.get(GasId::cold_storage_cost()), 2100);
+
+        // Monad cold account additional: 10000 vs Ethereum: 2500
+        assert_eq!(monad.get(GasId::cold_account_additional_cost()), 10000);
+        assert_eq!(eth.get(GasId::cold_account_additional_cost()), 2500);
+    }
+}
