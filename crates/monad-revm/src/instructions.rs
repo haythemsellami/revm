@@ -28,7 +28,7 @@ pub fn monad_gas_params(spec: MonadSpecId) -> GasParams {
     let eth_spec = spec.into_eth_spec();
     let mut params = GasParams::new_spec(eth_spec);
 
-    if MonadSpecId::Monad.is_enabled_in(spec) {
+    if MonadSpecId::MonadEight.is_enabled_in(spec) {
         params.override_gas([
             // SSTORE uses full cold storage cost
             (GasId::cold_storage_cost(), COLD_SLOAD_COST),
@@ -81,13 +81,13 @@ mod tests {
 
     #[test]
     fn test_monad_gas_params_cold_storage_cost() {
-        let params = monad_gas_params(MonadSpecId::Monad);
+        let params = monad_gas_params(MonadSpecId::MonadEight);
         assert_eq!(params.get(GasId::cold_storage_cost()), COLD_SLOAD_COST);
     }
 
     #[test]
     fn test_monad_gas_params_cold_storage_additional_cost() {
-        let params = monad_gas_params(MonadSpecId::Monad);
+        let params = monad_gas_params(MonadSpecId::MonadEight);
         assert_eq!(
             params.get(GasId::cold_storage_additional_cost()),
             COLD_SLOAD_COST - WARM_STORAGE_READ_COST
@@ -96,7 +96,7 @@ mod tests {
 
     #[test]
     fn test_monad_gas_params_cold_account_additional_cost() {
-        let params = monad_gas_params(MonadSpecId::Monad);
+        let params = monad_gas_params(MonadSpecId::MonadEight);
         assert_eq!(
             params.get(GasId::cold_account_additional_cost()),
             COLD_ACCOUNT_ACCESS_COST - WARM_STORAGE_READ_COST
@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_monad_gas_params_warm_storage_unchanged() {
-        let params = monad_gas_params(MonadSpecId::Monad);
+        let params = monad_gas_params(MonadSpecId::MonadEight);
         assert_eq!(
             params.get(GasId::warm_storage_read_cost()),
             WARM_STORAGE_READ_COST
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_monad_vs_ethereum_cold_costs() {
-        let monad = monad_gas_params(MonadSpecId::Monad);
+        let monad = monad_gas_params(MonadSpecId::MonadEight);
         let eth = GasParams::new_spec(SpecId::PRAGUE);
 
         // Monad cold storage: 8100 vs Ethereum: 2100

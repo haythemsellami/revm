@@ -10,14 +10,14 @@ use revm::primitives::hardfork::{SpecId, UnknownHardfork};
 pub enum MonadSpecId {
     /// Monad launch spec id.
     #[default]
-    Monad = 100,
+    MonadEight = 100,
 }
 
 impl MonadSpecId {
     /// Converts the [`MonadSpecId`] into a [`SpecId`].
     pub const fn into_eth_spec(self) -> SpecId {
         match self {
-            Self::Monad => SpecId::PRAGUE,
+            Self::MonadEight => SpecId::PRAGUE,
         }
     }
 
@@ -37,22 +37,22 @@ impl From<SpecId> for MonadSpecId {
     /// Converts an Ethereum [`SpecId`] to the corresponding [`MonadSpecId`].
     ///
     /// This maps Ethereum hardforks to their Monad equivalents:
-    /// - PRAGUE and earlier → MonadSpecId::Monad (Monad's genesis is PRAGUE-based)
+    /// - PRAGUE and earlier → MonadSpecId::MonadEight (Monad's genesis is PRAGUE-based)
     ///
     /// When new Monad hardforks are added, update this mapping:
     /// ```ignore
     /// match spec {
-    ///     SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::Monad2,
-    ///     _ => MonadSpecId::Monad,
+    ///     SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::MonadNine,
+    ///     _ => MonadSpecId::MonadEight,
     /// }
     /// ```
     fn from(spec: SpecId) -> Self {
-        // Currently Monad only has one hardfork (Monad), which is PRAGUE-based.
+        // Currently Monad only has one hardfork (MonadEight), which is PRAGUE-based.
         // When future Monad forks are added, map newer Ethereum specs accordingly.
         match spec {
             // Future: Add mappings for newer Monad hardforks here
-            // SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::Monad2,
-            _ => MonadSpecId::Monad,
+            // SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::MonadNine,
+            _ => MonadSpecId::MonadEight,
         }
     }
 }
@@ -62,7 +62,7 @@ impl FromStr for MonadSpecId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            name::MONAD => Ok(MonadSpecId::Monad),
+            name::MONAD_EIGHT => Ok(MonadSpecId::MonadEight),
             _ => Err(UnknownHardfork),
         }
     }
@@ -71,7 +71,7 @@ impl FromStr for MonadSpecId {
 impl From<MonadSpecId> for &'static str {
     fn from(spec_id: MonadSpecId) -> Self {
         match spec_id {
-            MonadSpecId::Monad => name::MONAD,
+            MonadSpecId::MonadEight => name::MONAD_EIGHT,
         }
     }
 }
@@ -79,5 +79,5 @@ impl From<MonadSpecId> for &'static str {
 /// String identifiers for Monad hardforks
 pub mod name {
     /// Mainnet launch spec name.
-    pub const MONAD: &str = "Monad";
+    pub const MONAD_EIGHT: &str = "MonadEight";
 }

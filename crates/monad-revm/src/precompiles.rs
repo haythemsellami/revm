@@ -324,7 +324,7 @@ where
 
 impl Default for MonadPrecompiles {
     fn default() -> Self {
-        Self::new_with_spec(MonadSpecId::Monad)
+        Self::new_with_spec(MonadSpecId::MonadEight)
     }
 }
 
