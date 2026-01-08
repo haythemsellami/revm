@@ -14,7 +14,15 @@ pub enum MonadSpecId {
 }
 
 impl MonadSpecId {
-    /// Converts the [`MonadSpecId`] into a [`SpecId`].
+    /// Returns the underlying Ethereum [`SpecId`] this Monad hardfork is built upon.
+    /// 
+    /// Used internally to:
+    /// - Get the base instruction table (before Monad gas overrides)
+    /// - Get the base precompiles (before Monad gas overrides)
+    /// - Check Ethereum feature availability (e.g., blob support)
+    /// 
+    /// Note: This returns the *foundation* spec, not an equivalence.
+    /// Future Monad hardforks may add features beyond the base Ethereum spec.
     pub const fn into_eth_spec(self) -> SpecId {
         match self {
             Self::MonadEight => SpecId::PRAGUE,
@@ -30,30 +38,6 @@ impl MonadSpecId {
 impl From<MonadSpecId> for SpecId {
     fn from(spec: MonadSpecId) -> Self {
         spec.into_eth_spec()
-    }
-}
-
-impl From<SpecId> for MonadSpecId {
-    /// Converts an Ethereum [`SpecId`] to the corresponding [`MonadSpecId`].
-    ///
-    /// This maps Ethereum hardforks to their Monad equivalents:
-    /// - PRAGUE and earlier → MonadSpecId::MonadEight (Monad's genesis is PRAGUE-based)
-    ///
-    /// When new Monad hardforks are added, update this mapping:
-    /// ```ignore
-    /// match spec {
-    ///     SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::MonadNine,
-    ///     _ => MonadSpecId::MonadEight,
-    /// }
-    /// ```
-    fn from(spec: SpecId) -> Self {
-        // Currently Monad only has one hardfork (MonadEight), which is PRAGUE-based.
-        // When future Monad forks are added, map newer Ethereum specs accordingly.
-        match spec {
-            // Future: Add mappings for newer Monad hardforks here
-            // SpecId::OSAKA | SpecId::AMSTERDAM.. => MonadSpecId::MonadNine,
-            _ => MonadSpecId::MonadEight,
-        }
     }
 }
 
