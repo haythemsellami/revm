@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [32.0.0](https://github.com/haythemsellami/revm/compare/revm-interpreter-v31.1.0...revm-interpreter-v32.0.0) - 2026-01-09
+
+### Added
+
+- Gas params ([#3132](https://github.com/haythemsellami/revm/pull/3132))
+- *(create)* Implement Cache for CreateInputs::created_address ([#3218](https://github.com/haythemsellami/revm/pull/3218))
+
+### Other
+
+- update README
+- *(fmt)* merge all imports ([#3184](https://github.com/haythemsellami/revm/pull/3184))
+
 ## [31.1.0](https://github.com/bluealloy/revm/compare/revm-interpreter-v31.0.0...revm-interpreter-v31.1.0) - 2025-11-14
 
 ### Fixed
