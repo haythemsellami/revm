@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.1.2](https://github.com/haythemsellami/revm/compare/revm-bytecode-v7.1.1...revm-bytecode-v7.1.2) - 2026-01-09
+
+### Other
+
+- update README
+
 ## [7.1.1](https://github.com/bluealloy/revm/compare/revm-bytecode-v7.1.0...revm-bytecode-v7.1.1) - 2025-11-07
 
 ### Other

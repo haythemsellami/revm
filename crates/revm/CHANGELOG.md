@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [33.1.1](https://github.com/haythemsellami/revm/compare/revm-v33.1.0...revm-v33.1.1) - 2026-01-09
+
+### Other
+
+- update README
+- *(fmt)* merge all imports ([#3184](https://github.com/haythemsellami/revm/pull/3184))
+
 ## [33.1.0](https://github.com/bluealloy/revm/compare/revm-v33.0.0...revm-v33.1.0) - 2025-11-14
 
 ### Fixed
