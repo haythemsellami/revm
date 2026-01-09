@@ -15,12 +15,12 @@ pub enum MonadSpecId {
 
 impl MonadSpecId {
     /// Returns the underlying Ethereum [`SpecId`] this Monad hardfork is built upon.
-    /// 
+    ///
     /// Used internally to:
     /// - Get the base instruction table (before Monad gas overrides)
     /// - Get the base precompiles (before Monad gas overrides)
     /// - Check Ethereum feature availability (e.g., blob support)
-    /// 
+    ///
     /// Note: This returns the *foundation* spec, not an equivalence.
     /// Future Monad hardforks may add features beyond the base Ethereum spec.
     pub const fn into_eth_spec(self) -> SpecId {
