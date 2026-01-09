@@ -1,3 +1,21 @@
+# Monad Revm
+
+The `monad-revm` crate extends the standard Revm with Monad-specific EVM customizations. It provides a drop-in replacement that implements Monad's unique gas model, precompile pricing, and execution semantics while maintaining full compatibility with the Revm framework.
+
+### Features Checklist
+
+- [x] **Custom Gas Pricing** - Cold storage access costs 8,100 gas (vs Ethereum's 2,100), cold account access costs 10,100 gas (vs 2,600)
+- [x] **No Gas Refunds** - Refund counter is always zero; users pay `gas_limit × gas_price`, not `gas_used × gas_price`
+- [x] **Repriced Precompiles** - ecRecover (2x), ecAdd (2x), ecMul (5x), ecPairing (5x), blake2f (2x), point evaluation (4x)
+- [x] **P256 Precompile (secp256r1)** - RIP-7212 support at address `0x0100`
+- [x] **Increased Bytecode Limits** - 128KB max code size, 256KB max initcode size
+- [x] **Blob Transaction Rejection** - EIP-4844 transactions are not supported
+- [ ] **Reserve Balance** - Minimum balance requirements for delegated EOAs
+- [ ] **EIP-7702 Restrictions** - CREATE/CREATE2 banned for delegated EOAs
+- [ ] **Monad-specific Precompiles** - Staking and other native precompiles
+
+---
+
 ### Revm
 
 [![CI](https://github.com/bluealloy/revm/actions/workflows/ci.yml/badge.svg)][gh-ci]
