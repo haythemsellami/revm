@@ -266,7 +266,7 @@ impl<DB: Database> DatabaseCommit for State<DB> {
         }
     }
 
-    fn commit_iter(&mut self, changes: impl IntoIterator<Item = (Address, Account)>) {
+    fn commit_iter(&mut self, changes: &mut dyn Iterator<Item = (Address, Account)>) {
         let transitions = self.cache.apply_evm_state(changes);
         if let Some(s) = self.transition_state.as_mut() {
             s.add_transitions(transitions)
