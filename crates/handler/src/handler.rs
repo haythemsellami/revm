@@ -1,4 +1,3 @@
-use crate::instructions::InstructionProvider;
 use crate::{
     evm::FrameTr,
     execution, post_execution,
@@ -99,21 +98,11 @@ pub trait Handler {
         &mut self,
         evm: &mut Self::Evm,
     ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
-        self.configure(evm);
         // Run inner handler and catch all errors to handle cleanup.
         match self.run_without_catch_error(evm) {
             Ok(output) => Ok(output),
             Err(e) => self.catch_error(evm, e),
         }
-    }
-
-    /// Configure the handler:
-    ///  * Set Instruction gas table to the spec id.
-    #[inline]
-    fn configure(&mut self, evm: &mut Self::Evm) {
-        let spec_id = evm.ctx().cfg().spec().into();
-        // sets static gas depending on the spec id.
-        evm.ctx_instructions().1.set_spec(spec_id);
     }
 
     /// Runs the system call.
@@ -137,8 +126,6 @@ pub trait Handler {
     ) -> Result<ExecutionResult<Self::HaltReason>, Self::Error> {
         // dummy values that are not used.
         let init_and_floor_gas = InitialAndFloorGas::new(0, 0);
-        // configure the evm for system call.
-        self.configure(evm);
         // call execution and than output.
         match self
             .execution(evm, &init_and_floor_gas)
@@ -265,7 +252,10 @@ pub trait Handler {
     ///
     /// Verifies the initial cost does not exceed the transaction gas limit.
     #[inline]
-    fn validate_initial_tx_gas(&self, evm: &Self::Evm) -> Result<InitialAndFloorGas, Self::Error> {
+    fn validate_initial_tx_gas(
+        &self,
+        evm: &mut Self::Evm,
+    ) -> Result<InitialAndFloorGas, Self::Error> {
         let ctx = evm.ctx_ref();
         validation::validate_initial_tx_gas(
             ctx.tx(),
@@ -292,7 +282,11 @@ pub trait Handler {
         apply_eip7702_auth_list(evm.ctx_mut())
     }
 
-    /// Deducts maximum possible fee and transfer value from caller's balance.
+    /// Deducts the maximum possible fee from caller's balance.
+    ///
+    /// If cfg.is_balance_check_disabled, this method will add back enough funds to ensure that
+    /// the caller's balance is at least tx.value() before returning. Note that the amount of funds
+    /// added back in this case may exceed the maximum fee.
     ///
     /// Unused fees are returned to caller after execution completes.
     #[inline]

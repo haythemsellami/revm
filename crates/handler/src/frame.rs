@@ -12,7 +12,6 @@ use context_interface::{
 use core::cmp::min;
 use derive_where::derive_where;
 use interpreter::{
-    gas::{self, params::GasParams},
     interpreter::{EthInterpreter, ExtBytecode},
     interpreter_action::FrameInit,
     interpreter_types::ReturnData,
@@ -114,7 +113,6 @@ impl EthFrame<EthInterpreter> {
         spec_id: SpecId,
         gas_limit: u64,
         checkpoint: JournalCheckpoint,
-        gas_params: GasParams,
     ) {
         let Self {
             data: data_ref,
@@ -128,9 +126,7 @@ impl EthFrame<EthInterpreter> {
         *input_ref = input;
         *depth_ref = depth;
         *is_finished_ref = false;
-        interpreter.clear(
-            memory, bytecode, inputs, is_static, spec_id, gas_limit, gas_params,
-        );
+        interpreter.clear(memory, bytecode, inputs, is_static, spec_id, gas_limit);
         *checkpoint_ref = checkpoint;
     }
 
@@ -147,7 +143,6 @@ impl EthFrame<EthInterpreter> {
         depth: usize,
         memory: SharedMemory,
         inputs: Box<CallInputs>,
-        gas_params: GasParams,
     ) -> Result<ItemOrResult<FrameToken, FrameResult>, ERROR> {
         let gas = Gas::new(inputs.gas_limit);
         let return_result = |instruction_result: InstructionResult| {
@@ -247,7 +242,6 @@ impl EthFrame<EthInterpreter> {
             ctx.cfg().spec().into(),
             gas_limit,
             checkpoint,
-            gas_params,
         );
         Ok(ItemOrResult::Item(this.consume()))
     }
@@ -263,14 +257,13 @@ impl EthFrame<EthInterpreter> {
         depth: usize,
         memory: SharedMemory,
         inputs: Box<CreateInputs>,
-        gas_params: GasParams,
     ) -> Result<ItemOrResult<FrameToken, FrameResult>, ERROR> {
         let spec = context.cfg().spec().into();
         let return_error = |e| {
             Ok(ItemOrResult::Result(FrameResult::Create(CreateOutcome {
                 result: InterpreterResult {
                     result: e,
-                    gas: Gas::new(inputs.gas_limit),
+                    gas: Gas::new(inputs.gas_limit()),
                     output: Bytes::new(),
                 },
                 address: None,
@@ -284,11 +277,11 @@ impl EthFrame<EthInterpreter> {
 
         // Fetch balance of caller.
         let journal = context.journal_mut();
-        let mut caller_info = journal.load_account_mut(inputs.caller)?;
+        let mut caller_info = journal.load_account_mut(inputs.caller())?;
 
         // Check if caller has enough balance to send to the created contract.
         // decrement of balance is done in the create_account_checkpoint.
-        if *caller_info.balance() < inputs.value {
+        if *caller_info.balance() < inputs.value() {
             return return_error(InstructionResult::OutOfFunds);
         }
 
@@ -300,11 +293,11 @@ impl EthFrame<EthInterpreter> {
 
         // Create address
         let mut init_code_hash = None;
-        let created_address = match inputs.scheme {
-            CreateScheme::Create => inputs.caller.create(old_nonce),
+        let created_address = match inputs.scheme() {
+            CreateScheme::Create => inputs.caller().create(old_nonce),
             CreateScheme::Create2 { salt } => {
-                let init_code_hash = *init_code_hash.insert(keccak256(&inputs.init_code));
-                inputs.caller.create2(salt.to_be_bytes(), init_code_hash)
+                let init_code_hash = *init_code_hash.insert(keccak256(inputs.init_code()));
+                inputs.caller().create2(salt.to_be_bytes(), init_code_hash)
             }
             CreateScheme::Custom { address } => address,
         };
@@ -316,9 +309,9 @@ impl EthFrame<EthInterpreter> {
 
         // Create account, transfer funds and make the journal checkpoint.
         let checkpoint = match context.journal_mut().create_account_checkpoint(
-            inputs.caller,
+            inputs.caller(),
             created_address,
-            inputs.value,
+            inputs.value(),
             spec,
         ) {
             Ok(checkpoint) => checkpoint,
@@ -326,18 +319,18 @@ impl EthFrame<EthInterpreter> {
         };
 
         let bytecode = ExtBytecode::new_with_optional_hash(
-            Bytecode::new_legacy(inputs.init_code.clone()),
+            Bytecode::new_legacy(inputs.init_code().clone()),
             init_code_hash,
         );
 
         let interpreter_input = InputsImpl {
             target_address: created_address,
-            caller_address: inputs.caller,
+            caller_address: inputs.caller(),
             bytecode_address: None,
             input: CallInput::Bytes(Bytes::new()),
-            call_value: inputs.value,
+            call_value: inputs.value(),
         };
-        let gas_limit = inputs.gas_limit;
+        let gas_limit = inputs.gas_limit();
 
         this.get(EthFrame::invalid).clear(
             FrameData::Create(CreateFrame { created_address }),
@@ -350,7 +343,6 @@ impl EthFrame<EthInterpreter> {
             spec,
             gas_limit,
             checkpoint,
-            gas_params,
         );
         Ok(ItemOrResult::Item(this.consume()))
     }
@@ -364,7 +356,6 @@ impl EthFrame<EthInterpreter> {
         ctx: &mut CTX,
         precompiles: &mut PRECOMPILES,
         frame_init: FrameInit,
-        gas_params: GasParams,
     ) -> Result<
         ItemOrResult<FrameToken, FrameResult>,
         ContextError<<<CTX as ContextTr>::Db as Database>::Error>,
@@ -378,11 +369,9 @@ impl EthFrame<EthInterpreter> {
 
         match frame_input {
             FrameInput::Call(inputs) => {
-                Self::make_call_frame(this, ctx, precompiles, depth, memory, inputs, gas_params)
+                Self::make_call_frame(this, ctx, precompiles, depth, memory, inputs)
             }
-            FrameInput::Create(inputs) => {
-                Self::make_create_frame(this, ctx, depth, memory, inputs, gas_params)
-            }
+            FrameInput::Create(inputs) => Self::make_create_frame(this, ctx, depth, memory, inputs),
             FrameInput::Empty => unreachable!(),
         }
     }
@@ -398,8 +387,6 @@ impl EthFrame<EthInterpreter> {
         context: &mut CTX,
         next_action: InterpreterAction,
     ) -> Result<FrameInitOrResult<Self>, ERROR> {
-        let spec = context.cfg().spec().into();
-
         // Run interpreter
 
         let mut interpreter_result = match next_action {
@@ -430,16 +417,13 @@ impl EthFrame<EthInterpreter> {
                 )))
             }
             FrameData::Create(frame) => {
-                let max_code_size = context.cfg().max_code_size();
-                let is_eip3541_disabled = context.cfg().is_eip3541_disabled();
+                let (cfg, journal) = context.cfg_journal_mut();
                 return_create(
-                    context.journal_mut(),
+                    journal,
+                    cfg,
                     self.checkpoint,
                     &mut interpreter_result,
                     frame.created_address,
-                    max_code_size,
-                    is_eip3541_disabled,
-                    spec,
                 );
 
                 ItemOrResult::Result(FrameResult::Create(CreateOutcome::new(
@@ -545,15 +529,17 @@ impl EthFrame<EthInterpreter> {
 }
 
 /// Handles the result of a CREATE operation, including validation and state updates.
-pub fn return_create<JOURNAL: JournalTr>(
+pub fn return_create<JOURNAL: JournalTr, CFG: Cfg>(
     journal: &mut JOURNAL,
+    cfg: CFG,
     checkpoint: JournalCheckpoint,
     interpreter_result: &mut InterpreterResult,
     address: Address,
-    max_code_size: usize,
-    is_eip3541_disabled: bool,
-    spec_id: SpecId,
 ) {
+    let max_code_size = cfg.max_code_size();
+    let is_eip3541_disabled = cfg.is_eip3541_disabled();
+    let spec_id = cfg.spec().into();
+
     // If return is not ok revert and return.
     if !interpreter_result.result.is_ok() {
         journal.checkpoint_revert(checkpoint);
@@ -579,7 +565,9 @@ pub fn return_create<JOURNAL: JournalTr>(
         interpreter_result.result = InstructionResult::CreateContractSizeLimit;
         return;
     }
-    let gas_for_code = interpreter_result.output.len() as u64 * gas::CODEDEPOSIT;
+    let gas_for_code = cfg
+        .gas_params()
+        .code_deposit_cost(interpreter_result.output.len());
     if !interpreter_result.gas.record_cost(gas_for_code) {
         // Record code deposit gas cost and check if we are out of gas.
         // EIP-2 point 3: If contract creation does not have enough gas to pay for the
