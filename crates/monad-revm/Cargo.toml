@@ -25,7 +25,7 @@ serde = { workspace = true, features = ["derive", "rc"], optional = true }
 rstest = "0.24"
 
 [features]
-default = ["std", "c-kzg", "secp256k1", "portable", "blst"]
+default = ["std", "c-kzg", "secp256k1", "portable", "blst", "optional_no_base_fee"]
 std = ["serde?/std", "revm/std"]
 serde = ["dep:serde", "revm/serde"]
 portable = ["revm/portable"]
