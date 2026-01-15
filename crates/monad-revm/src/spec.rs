@@ -65,3 +65,49 @@ pub mod name {
     /// Mainnet launch spec name.
     pub const MONAD_EIGHT: &str = "MonadEight";
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_monad_spec_id_default() {
+        assert_eq!(MonadSpecId::default(), MonadSpecId::MonadEight);
+    }
+
+    #[test]
+    fn test_monad_spec_into_eth_spec() {
+        assert_eq!(MonadSpecId::MonadEight.into_eth_spec(), SpecId::PRAGUE);
+    }
+
+    #[test]
+    fn test_monad_spec_from_str() {
+        assert_eq!(
+            "MonadEight".parse::<MonadSpecId>().unwrap(),
+            MonadSpecId::MonadEight
+        );
+    }
+
+    #[test]
+    fn test_monad_spec_from_str_unknown() {
+        assert!("Unknown".parse::<MonadSpecId>().is_err());
+    }
+
+    #[test]
+    fn test_monad_spec_into_str() {
+        let name: &'static str = MonadSpecId::MonadEight.into();
+        assert_eq!(name, "MonadEight");
+    }
+
+    #[test]
+    fn test_monad_spec_is_enabled_in() {
+        // MonadEight is enabled in MonadEight
+        assert!(MonadSpecId::MonadEight.is_enabled_in(MonadSpecId::MonadEight));
+    }
+
+    #[test]
+    fn test_monad_spec_from_impl() {
+        let spec_id: SpecId = MonadSpecId::MonadEight.into();
+        assert_eq!(spec_id, SpecId::PRAGUE);
+    }
+}

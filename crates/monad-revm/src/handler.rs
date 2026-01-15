@@ -144,8 +144,9 @@ mod tests {
     use crate::{api::builder::MonadBuilder, api::default_ctx::DefaultMonad};
     use revm::{
         context::{result::EVMError, Context, TxEnv},
+        database::InMemoryDB,
         inspector::NoOpInspector,
-        primitives::B256,
+        primitives::{Address, B256},
         ExecuteEvm,
     };
 
@@ -170,5 +171,164 @@ mod tests {
                 InvalidTransaction::Eip4844NotSupported
             ))
         ));
+    }
+
+    #[test]
+    fn test_reward_beneficiary_charges_full_gas_limit() {
+        // Setup: Create EVM with a specific coinbase and caller
+        let caller = Address::from([1u8; 20]);
+        let coinbase = Address::from([2u8; 20]);
+        let gas_limit = 100_000u64;
+        let gas_price = 1_000_000_000u128; // 1 gwei
+
+        let mut db = InMemoryDB::default();
+        // Give caller enough balance for gas
+        db.insert_account_info(
+            caller,
+            revm::state::AccountInfo {
+                balance: U256::from(gas_limit as u128 * gas_price * 2),
+                ..Default::default()
+            },
+        );
+        // Coinbase starts with 0 balance
+        db.insert_account_info(coinbase, revm::state::AccountInfo::default());
+
+        let ctx = Context::monad().with_db(db);
+        let mut evm = ctx.build_monad_with_inspector(NoOpInspector {});
+
+        // Set block beneficiary
+        evm.ctx().block.beneficiary = coinbase;
+        evm.ctx().block.basefee = 0;
+
+        // Simple transfer transaction - uses ~21000 gas
+        let tx = TxEnv::builder()
+            .caller(caller)
+            .to(Address::from([3u8; 20]))
+            .value(U256::from(1))
+            .gas_limit(gas_limit)
+            .gas_price(gas_price)
+            .build_fill();
+
+        let result = evm.transact(tx).expect("Transaction should succeed");
+
+        // Verify coinbase received gas_limit * gas_price, NOT gas_used * gas_price
+        let coinbase_balance = result
+            .state
+            .get(&coinbase)
+            .map(|a| a.info.balance)
+            .unwrap_or_default();
+
+        let expected_reward = U256::from(gas_limit as u128 * gas_price);
+        assert_eq!(
+            coinbase_balance, expected_reward,
+            "Coinbase should receive gas_limit * gas_price = {}, got {}",
+            expected_reward, coinbase_balance
+        );
+    }
+
+    #[test]
+    fn test_no_gas_refund_for_unused_gas() {
+        // Setup: Execute a transaction that uses less gas than gas_limit
+        let caller = Address::from([1u8; 20]);
+        let gas_limit = 100_000u64;
+        let gas_price = 1_000_000_000u128; // 1 gwei
+        let initial_balance = U256::from(1_000_000_000_000_000_000u128); // 1 ETH
+
+        let mut db = InMemoryDB::default();
+        db.insert_account_info(
+            caller,
+            revm::state::AccountInfo {
+                balance: initial_balance,
+                ..Default::default()
+            },
+        );
+
+        let ctx = Context::monad().with_db(db);
+        let mut evm = ctx.build_monad_with_inspector(NoOpInspector {});
+        evm.ctx().block.basefee = 0;
+
+        // Simple transfer - uses ~21000 gas, but we set gas_limit to 100000
+        let tx = TxEnv::builder()
+            .caller(caller)
+            .to(Address::from([3u8; 20]))
+            .value(U256::from(1000))
+            .gas_limit(gas_limit)
+            .gas_price(gas_price)
+            .build_fill();
+
+        let result = evm.transact(tx).expect("Transaction should succeed");
+
+        // On Monad, caller should NOT be reimbursed for unused gas
+        // Final balance = initial - (gas_limit * gas_price) - value_sent
+        let caller_balance = result
+            .state
+            .get(&caller)
+            .map(|a| a.info.balance)
+            .unwrap_or_default();
+
+        let gas_cost = U256::from(gas_limit as u128 * gas_price);
+        let value_sent = U256::from(1000);
+        let expected_balance = initial_balance - gas_cost - value_sent;
+
+        assert_eq!(
+            caller_balance,
+            expected_balance,
+            "Caller should be charged full gas_limit, not gas_used. \
+             Expected {}, got {}. Gas used was {}",
+            expected_balance,
+            caller_balance,
+            result.result.gas_used()
+        );
+
+        // Verify gas_used < gas_limit (to confirm unused gas wasn't refunded)
+        assert!(
+            result.result.gas_used() < gas_limit,
+            "Gas used ({}) should be less than gas_limit ({})",
+            result.result.gas_used(),
+            gas_limit
+        );
+    }
+
+    #[test]
+    fn test_refund_counter_is_zero() {
+        use revm::context_interface::result::ExecutionResult;
+
+        // Test that the refund counter is always set to 0
+        let caller = Address::from([1u8; 20]);
+
+        let mut db = InMemoryDB::default();
+        db.insert_account_info(
+            caller,
+            revm::state::AccountInfo {
+                balance: U256::from(1_000_000_000_000_000_000u128),
+                ..Default::default()
+            },
+        );
+
+        let ctx = Context::monad().with_db(db);
+        let mut evm = ctx.build_monad_with_inspector(NoOpInspector {});
+        evm.ctx().block.basefee = 0;
+
+        let tx = TxEnv::builder()
+            .caller(caller)
+            .to(Address::from([3u8; 20]))
+            .value(U256::from(1))
+            .gas_limit(50_000)
+            .gas_price(1_000_000_000u128)
+            .build_fill();
+
+        let result = evm.transact(tx).expect("Transaction should succeed");
+
+        // Verify refund is 0 (Monad disables refunds)
+        match result.result {
+            ExecutionResult::Success { gas_refunded, .. } => {
+                assert_eq!(
+                    gas_refunded, 0,
+                    "Refund should be 0 on Monad, got {}",
+                    gas_refunded
+                );
+            }
+            _ => panic!("Expected successful transaction"),
+        }
     }
 }
