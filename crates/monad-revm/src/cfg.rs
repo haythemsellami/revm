@@ -3,9 +3,10 @@
 //! This module provides [`MonadCfgEnv`], a wrapper around `CfgEnv<MonadSpecId>` that
 //! implements the `Cfg` trait with Monad-specific defaults.
 
-use crate::MonadSpecId;
+use crate::{instructions::monad_gas_params, MonadSpecId};
 use core::ops::{Deref, DerefMut};
 use revm::context::{Cfg, CfgEnv};
+use revm::context_interface::cfg::GasParams;
 
 /// Monad maximum contract code size.
 ///
@@ -31,14 +32,21 @@ pub const MONAD_MAX_INITCODE_SIZE: usize = MONAD_MAX_CODE_SIZE * 2; // 256KB
 pub struct MonadCfgEnv(pub CfgEnv<MonadSpecId>);
 
 impl MonadCfgEnv {
-    /// Creates a new `MonadCfgEnv` with default Monad spec.
+    /// Creates a new `MonadCfgEnv` with default Monad spec and Monad gas params.
     pub fn new() -> Self {
-        Self(CfgEnv::new_with_spec(MonadSpecId::default()))
+        let spec = MonadSpecId::default();
+        Self(CfgEnv::new_with_spec_and_gas_params(
+            spec,
+            monad_gas_params(spec),
+        ))
     }
 
-    /// Creates a new `MonadCfgEnv` with the specified spec.
+    /// Creates a new `MonadCfgEnv` with the specified spec and Monad gas params.
     pub fn new_with_spec(spec: MonadSpecId) -> Self {
-        Self(CfgEnv::new_with_spec(spec))
+        Self(CfgEnv::new_with_spec_and_gas_params(
+            spec,
+            monad_gas_params(spec),
+        ))
     }
 
     /// Returns a reference to the inner `CfgEnv`.
@@ -70,7 +78,11 @@ impl Default for MonadCfgEnv {
 }
 
 impl From<CfgEnv<MonadSpecId>> for MonadCfgEnv {
-    fn from(cfg: CfgEnv<MonadSpecId>) -> Self {
+    fn from(mut cfg: CfgEnv<MonadSpecId>) -> Self {
+        // Inject Monad-specific gas params when converting from CfgEnv.
+        // This ensures downstream consumers (alloy-monad-evm, monad-foundry)
+        // automatically get Monad gas costs when converting.
+        cfg.set_gas_params(monad_gas_params(cfg.spec));
         Self(cfg)
     }
 }
@@ -187,6 +199,10 @@ impl Cfg for MonadCfgEnv {
 
     fn memory_limit(&self) -> u64 {
         <CfgEnv<MonadSpecId> as Cfg>::memory_limit(&self.0)
+    }
+
+    fn gas_params(&self) -> &GasParams {
+        &self.0.gas_params
     }
 }
 

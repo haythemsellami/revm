@@ -1,11 +1,9 @@
 use crate::MonadSpecId;
 use revm::{
+    context_interface::cfg::{GasId, GasParams},
     handler::instructions::EthInstructions,
     interpreter::{
-        gas::params::{GasId, GasParams},
-        instructions::instruction_table_gas_changes_spec,
-        interpreter::EthInterpreter,
-        Host,
+        instructions::instruction_table_gas_changes_spec, interpreter::EthInterpreter, Host,
     },
 };
 
@@ -52,15 +50,13 @@ pub fn monad_gas_params(spec: MonadSpecId) -> GasParams {
 // Create Monad instructions table with custom gas costs.
 /// This function combines:
 /// 1. Standard instruction table for the underlying Ethereum spec
-/// 2. Monad-specific gas parameters for the hardfork
-/// 3. Any custom Monad opcodes (future)
+/// 2. Any custom Monad opcodes (future)
+///
+/// Note: Gas params are now stored in CfgEnv, not in instructions.
+/// Use `monad_gas_params()` with `MonadCfgEnv` for custom gas costs.
 pub fn monad_instructions<CTX: Host>(spec: MonadSpecId) -> MonadInstructions<CTX> {
     let eth_spec = spec.into_eth_spec();
-    EthInstructions::new(
-        instruction_table_gas_changes_spec(eth_spec),
-        monad_gas_params(spec),
-        eth_spec,
-    )
+    EthInstructions::new(instruction_table_gas_changes_spec(eth_spec), eth_spec)
 }
 
 /// Monad cold storage access cost (SLOAD, SSTORE).

@@ -11,11 +11,9 @@ use crate::{
     OpSpecId,
 };
 use revm::{
+    context_interface::cfg::gas::{NON_ZERO_BYTE_MULTIPLIER_ISTANBUL, STANDARD_TOKEN_COST},
     database_interface::Database,
-    interpreter::{
-        gas::{get_tokens_in_calldata, NON_ZERO_BYTE_MULTIPLIER_ISTANBUL, STANDARD_TOKEN_COST},
-        Gas,
-    },
+    interpreter::{gas::get_tokens_in_calldata_istanbul, Gas},
     primitives::U256,
 };
 
@@ -236,7 +234,7 @@ impl L1BlockInfo {
         };
 
         // tokens in calldata where non-zero bytes are priced 4 times higher than zero bytes (Same as in Istanbul).
-        let mut tokens_in_transaction_data = get_tokens_in_calldata(input, true);
+        let mut tokens_in_transaction_data = get_tokens_in_calldata_istanbul(input);
 
         // Prior to regolith, an extra 68 non zero bytes were included in the rollup data costs.
         if !spec_id.is_enabled_in(OpSpecId::REGOLITH) {

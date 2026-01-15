@@ -4,7 +4,7 @@ use context_interface::{
     Block, Cfg, ContextTr,
 };
 use core::cmp;
-use interpreter::gas::{self, InitialAndFloorGas};
+use interpreter::{instructions::calculate_initial_tx_gas_for_tx, InitialAndFloorGas};
 use primitives::{eip4844, hardfork::SpecId, B256};
 
 /// Validates the execution environment including block and transaction parameters.
@@ -61,6 +61,21 @@ pub fn validate_priority_fee_tx(
     Ok(())
 }
 
+/// Validate priority fee for transactions that support EIP-1559 (Eip1559, Eip4844, Eip7702).
+#[inline]
+fn validate_priority_fee_for_tx<TX: Transaction>(
+    tx: TX,
+    base_fee: Option<u128>,
+    disable_priority_fee_check: bool,
+) -> Result<(), InvalidTransaction> {
+    validate_priority_fee_tx(
+        tx.max_fee_per_gas(),
+        tx.max_priority_fee_per_gas().unwrap_or_default(),
+        base_fee,
+        disable_priority_fee_check,
+    )
+}
+
 /// Validate EIP-4844 transaction.
 pub fn validate_eip4844_tx(
     blobs: &[B256],
@@ -107,8 +122,8 @@ pub fn validate_tx_env<CTX: ContextTr>(
     spec_id: SpecId,
 ) -> Result<(), InvalidTransaction> {
     // Check if the transaction's chain id is correct
-    let tx_type = context.tx().tx_type();
     let tx = context.tx();
+    let tx_type = tx.tx_type();
 
     let base_fee = if context.cfg().is_base_fee_check_disabled() {
         None
@@ -157,24 +172,14 @@ pub fn validate_tx_env<CTX: ContextTr>(
             if !spec_id.is_enabled_in(SpecId::LONDON) {
                 return Err(InvalidTransaction::Eip1559NotSupported);
             }
-            validate_priority_fee_tx(
-                tx.max_fee_per_gas(),
-                tx.max_priority_fee_per_gas().unwrap_or_default(),
-                base_fee,
-                disable_priority_fee_check,
-            )?;
+            validate_priority_fee_for_tx(tx, base_fee, disable_priority_fee_check)?;
         }
         TransactionType::Eip4844 => {
             if !spec_id.is_enabled_in(SpecId::CANCUN) {
                 return Err(InvalidTransaction::Eip4844NotSupported);
             }
 
-            validate_priority_fee_tx(
-                tx.max_fee_per_gas(),
-                tx.max_priority_fee_per_gas().unwrap_or_default(),
-                base_fee,
-                disable_priority_fee_check,
-            )?;
+            validate_priority_fee_for_tx(tx, base_fee, disable_priority_fee_check)?;
 
             validate_eip4844_tx(
                 tx.blob_versioned_hashes(),
@@ -189,12 +194,7 @@ pub fn validate_tx_env<CTX: ContextTr>(
                 return Err(InvalidTransaction::Eip7702NotSupported);
             }
 
-            validate_priority_fee_tx(
-                tx.max_fee_per_gas(),
-                tx.max_priority_fee_per_gas().unwrap_or_default(),
-                base_fee,
-                disable_priority_fee_check,
-            )?;
+            validate_priority_fee_for_tx(tx, base_fee, disable_priority_fee_check)?;
 
             let auth_list_len = tx.authorization_list_len();
             // The transaction is considered invalid if the length of authorization_list is zero.
@@ -216,7 +216,7 @@ pub fn validate_tx_env<CTX: ContextTr>(
     // EIP-3860: Limit and meter initcode. Still valid with EIP-7907 and increase of initcode size.
     if spec_id.is_enabled_in(SpecId::SHANGHAI)
         && tx.kind().is_create()
-        && context.tx().input().len() > context.cfg().max_initcode_size()
+        && tx.input().len() > context.cfg().max_initcode_size()
     {
         return Err(InvalidTransaction::CreateInitCodeSizeLimit);
     }
@@ -230,7 +230,7 @@ pub fn validate_initial_tx_gas(
     spec: SpecId,
     is_eip7623_disabled: bool,
 ) -> Result<InitialAndFloorGas, InvalidTransaction> {
-    let mut gas = gas::calculate_initial_tx_gas_for_tx(&tx, spec);
+    let mut gas = calculate_initial_tx_gas_for_tx(&tx, spec);
 
     if is_eip7623_disabled {
         gas.floor_gas = 0
@@ -275,7 +275,7 @@ mod tests {
         let ctx = Context::mainnet()
             .modify_cfg_chained(|c| {
                 if let Some(spec_id) = spec_id {
-                    c.spec = spec_id;
+                    c.set_spec_and_mainnet_gas_params(spec_id);
                 }
             })
             .with_db(CacheDB::<EmptyDB>::default());
