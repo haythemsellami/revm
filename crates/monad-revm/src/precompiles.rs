@@ -14,7 +14,7 @@
 //!
 //! *Base cost per operation
 
-use crate::MonadSpecId;
+use crate::{staking, MonadSpecId};
 use revm::{
     context::Cfg,
     context_interface::ContextTr,
@@ -308,17 +308,26 @@ where
         context: &mut CTX,
         inputs: &CallInputs,
     ) -> Result<Option<Self::Output>, String> {
+        // Check if this is the staking precompile first
+        if let Some(result) = staking::run_staking_precompile(context, inputs)? {
+            return Ok(Some(result));
+        }
+
+        // Otherwise, delegate to standard Ethereum precompiles
         self.inner.run(context, inputs)
     }
 
     #[inline]
     fn warm_addresses(&self) -> Box<impl Iterator<Item = Address>> {
-        self.inner.warm_addresses()
+        // Include staking precompile address along with standard ones
+        let mut addresses = vec![staking::storage::STAKING_ADDRESS];
+        addresses.extend(self.inner.warm_addresses());
+        Box::new(addresses.into_iter())
     }
 
     #[inline]
     fn contains(&self, address: &Address) -> bool {
-        self.inner.contains(address)
+        *address == staking::storage::STAKING_ADDRESS || self.inner.contains(address)
     }
 }
 
@@ -429,8 +438,14 @@ mod tests {
             "p256_verify (0x0100) should exist"
         );
 
-        // TODO: Add Monad-specific precompiles when implemented
-        // assert!(precompiles.contains(&revm::precompile::u64_to_address(0x1000)), "staking (0x1000) should exist");
+        // Monad staking precompile is handled separately in run() method
+        // It's not in the standard Precompiles struct but is checked via contains()
+        // The staking address is 0x1000
+        assert_eq!(
+            crate::staking::storage::STAKING_ADDRESS,
+            revm::precompile::u64_to_address(0x1000),
+            "staking address should be 0x1000"
+        );
     }
 
     #[test]

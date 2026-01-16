@@ -5,6 +5,7 @@
 //! - Custom precompiles
 //! - Custom gas costs
 //! - Custom code size limits (128KB max code, 256KB max initcode)
+//! - Staking precompile at address 0x1000
 
 /// API module for building and executing Monad EVM.
 pub mod api;
@@ -20,6 +21,8 @@ pub mod instructions;
 pub mod precompiles;
 /// Monad specification identifiers and hardfork definitions.
 pub mod spec;
+/// Monad staking precompile at address 0x1000.
+pub mod staking;
 
 pub use api::*;
 pub use cfg::{MonadCfgEnv, MONAD_MAX_CODE_SIZE, MONAD_MAX_INITCODE_SIZE};
