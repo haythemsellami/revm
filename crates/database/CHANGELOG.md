@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [10.0.1](https://github.com/haythemsellami/revm/compare/revm-database-v10.0.0...revm-database-v10.0.1) - 2026-01-16
+
+### Other
+
+- Merge remote-tracking branch 'upstream/main'
+- Use O(1) ring buffer cache for block hashes instead of BTreeMap ([#3299](https://github.com/haythemsellami/revm/pull/3299))
+
 ## [10.0.0](https://github.com/bluealloy/revm/compare/revm-database-v9.0.6...revm-database-v10.0.0) - 2026-01-15
 
 ### Added
